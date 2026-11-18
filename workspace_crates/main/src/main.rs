@@ -1,11 +1,10 @@
 use std::{path::PathBuf, time::SystemTimeError};
 
 use auth_system_structs::{
-    internal_api::{
+    API_TOKEN_KEY_NAME, internal_api::{
         AddOrUpdateUserResponse, AddTestUserWithPlaintextPasswordResponse,
         InternalAPIAction::{self},
-    },
-    public_api::{
+    }, public_api::{
         CreateJoinTokenError, CreateJoinTokenErrorKind,
         CreateJoinTokenResponse::{self, Success},
         CreateJoinTokenSuccess, LoginError, LoginErrorKind, LoginResponse, LoginSuccess,
@@ -117,7 +116,7 @@ async fn route(
         }
         p if p == app_config.secret_api_prefix => {
             let api_key_valid = verify_api_key(
-                headers.get("x-api-key").unwrap_or_default().to_owned(),
+                headers.get(API_TOKEN_KEY_NAME).unwrap_or_default().to_owned(),
                 app_config.api_key.clone(),
             );
             if !api_key_valid {

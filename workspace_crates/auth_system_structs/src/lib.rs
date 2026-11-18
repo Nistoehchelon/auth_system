@@ -1,4 +1,8 @@
+pub const API_TOKEN_KEY_NAME: &str = "x-api-key";
+
 pub mod internal_api {
+    use crate::API_TOKEN_KEY_NAME;
+
     #[derive(Debug, strum::EnumString, strum::Display, strum::IntoStaticStr)]
     #[strum(serialize_all = "snake_case")]
     pub enum InternalAPIAction {
@@ -26,6 +30,57 @@ pub mod internal_api {
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub enum AddTestUserWithPlaintextPasswordResponse {
         Added,
+    }
+    pub enum SendAddOrUpdateUserRequestError {
+        SerializationError(String),
+        RequestSendingError(String),
+        ServerError(String),
+        DeserializationError(String),
+    }
+    pub async fn send_add_or_update_user_request(
+        auth_server_url: String,
+        auth_server_secret_prefix: String,
+        auth_server_token: String,
+        req: AddOrUpdateUserRequest,
+    ) -> Result<AddOrUpdateUserResponse, SendAddOrUpdateUserRequestError> {
+        let full_url = format!(
+            "{auth_server_url}/{auth_server_secret_prefix}/{}",
+            InternalAPIAction::AddOrUpdateUser
+        );
+        let serialized = serde_json::to_vec(&req).map_err(|e| {
+            SendAddOrUpdateUserRequestError::SerializationError(format!(
+                "Failed conversion to bytes {e:#?}"
+            ))
+        })?;
+        let client = reqwest::Client::new();
+        let response = client
+            .post(&full_url)
+            .header(API_TOKEN_KEY_NAME, auth_server_token)
+            .header(reqwest::header::CONTENT_TYPE, "application/json")
+            .body(serialized)
+            .send()
+            .await
+            .map_err(|e| {
+                SendAddOrUpdateUserRequestError::RequestSendingError(format!(
+                    "HTTP request failed: {e:#?}"
+                ))
+            })?;
+        if !response.status().is_success() {
+            let status = response.status();
+            let err_body = response.text().await.unwrap_or_default();
+            return Err(SendAddOrUpdateUserRequestError::ServerError(format!(
+                "Server returned status {status}: {err_body}"
+            )));
+        }
+        let parsed_response = response
+            .json::<AddOrUpdateUserResponse>()
+            .await
+            .map_err(|e| {
+                SendAddOrUpdateUserRequestError::DeserializationError(format!(
+                    "Failed to parse response JSON: {e:#?}"
+                ))
+            })?;
+        Ok(parsed_response)
     }
 }
 
@@ -91,8 +146,6 @@ pub mod public_api {
         Error(CreateJoinTokenError),
     }
 
-
-
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct CreateJoinTokenSuccess {
         pub join_token: String,
@@ -107,9 +160,7 @@ pub mod public_api {
         InvalidSessionToken,
     }
 
-
-// ----------------------
-
+    // ----------------------
 
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
     pub struct ValidateJoinTokenRequest {
@@ -123,7 +174,7 @@ pub mod public_api {
         Invalid,
     }
     #[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
-    pub struct  ValidateJoinTokenSuccess {
+    pub struct ValidateJoinTokenSuccess {
         pub user_id: String,
         pub username: String,
     }
