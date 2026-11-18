@@ -1,16 +1,16 @@
 pub const API_TOKEN_KEY_NAME: &str = "x-api-key";
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(derive_more::Display, Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct AuthServerAPIToken(pub String);
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(derive_more::Display, Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct AuthServerUrl(pub String);
-#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[derive(derive_more::Display, Debug, Clone, serde::Serialize, serde::Deserialize)]
 #[serde(transparent)]
 pub struct AuthServerSecretPrefix(pub String);
 
 pub mod internal_api {
-    use crate::API_TOKEN_KEY_NAME;
+    use crate::{API_TOKEN_KEY_NAME, AuthServerAPIToken, AuthServerSecretPrefix, AuthServerUrl};
 
     #[derive(Debug, strum::EnumString, strum::Display, strum::IntoStaticStr)]
     #[strum(serialize_all = "snake_case")]
@@ -48,9 +48,9 @@ pub mod internal_api {
         DeserializationError(String),
     }
     pub async fn send_add_or_update_user_request(
-        auth_server_url: String,
-        auth_server_secret_prefix: String,
-        auth_server_token: String,
+        auth_server_url: AuthServerUrl,
+        auth_server_secret_prefix: AuthServerSecretPrefix,
+        auth_server_token: AuthServerAPIToken,
         req: AddOrUpdateUserRequest,
     ) -> Result<AddOrUpdateUserResponse, SendAddOrUpdateUserRequestError> {
         let full_url = format!(
@@ -65,7 +65,7 @@ pub mod internal_api {
         let client = reqwest::Client::new();
         let response = client
             .post(&full_url)
-            .header(API_TOKEN_KEY_NAME, auth_server_token)
+            .header(API_TOKEN_KEY_NAME, auth_server_token.to_string())
             .header(reqwest::header::CONTENT_TYPE, "application/json")
             .body(serialized)
             .send()
