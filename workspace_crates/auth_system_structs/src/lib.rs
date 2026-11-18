@@ -1,4 +1,13 @@
 pub const API_TOKEN_KEY_NAME: &str = "x-api-key";
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct AuthServerAPIToken(pub String);
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct AuthServerUrl(pub String);
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
+#[serde(transparent)]
+pub struct AuthServerSecretPrefix(pub String);
 
 pub mod internal_api {
     use crate::API_TOKEN_KEY_NAME;
@@ -31,7 +40,7 @@ pub mod internal_api {
     pub enum AddTestUserWithPlaintextPasswordResponse {
         Added,
     }
-     #[derive(Debug, Clone,)]
+    #[derive(Debug, Clone)]
     pub enum SendAddOrUpdateUserRequestError {
         SerializationError(String),
         RequestSendingError(String),
