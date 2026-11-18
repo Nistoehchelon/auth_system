@@ -31,6 +31,7 @@ pub mod internal_api {
     pub enum AddTestUserWithPlaintextPasswordResponse {
         Added,
     }
+     #[derive(Debug, Clone,)]
     pub enum SendAddOrUpdateUserRequestError {
         SerializationError(String),
         RequestSendingError(String),
